@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -19,15 +20,26 @@ func getHello(w http.ResponseWriter, r *http.Request) {
 }
 
 func main(){
+	//create logs
+	logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("error opening log file: %v", err)
+	}
+	defer logFile.Close()
+
+	logger := log.New(logFile, "LOG: ", log.LstdFlags|log.Lshortfile)
+	logger.Println("Logger initiated.")
+
+	//server
 	http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
 
-	err := http.ListenAndServe(":3333", nil)
+	httperr := http.ListenAndServe(":3333", nil)
 
-	if errors.Is(err, http.ErrServerClosed){
-		fmt.Printf("server closed\n")
-	} else if err != nil {
-		fmt.Printf("error starting server %s\n", err)
+	if errors.Is(httperr, http.ErrServerClosed){
+		logger.Printf("server closed\n")
+	} else if httperr != nil {
+		logger.Printf("error starting server %s\n", httperr)
 		os.Exit(1)
 	}
 }
